@@ -1,6 +1,5 @@
 import json
 import asyncio
-from pathlib import Path
 from collections import defaultdict
 from itertools import chain
 from functools import partial
@@ -40,16 +39,14 @@ def load_docs(path_config: PathConfig) -> list[Document]:
 
     for f_path in chain(*files):
         try:
-            f =  open(f_path, "r")
-        except UnicodeDecodeError:
-            print(f_path)
-        else:
-            with f:
+            with open(f_path, "r") as f:
                 docs.append(
                     Document(
-                        page_content=f.read(), metadata={ "source": f_path }
+                        page_content=f.read(), metadata={ "source": f_path.as_posix() }
                     )
                 )
+        except UnicodeDecodeError:
+            print(f_path)
 
     return docs
 
@@ -67,7 +64,6 @@ async def get_chunks(docs_pool: list[Document]) -> list[Document]:
 async def test():
     documents = load_docs(config)
     res = await get_chunks(documents)
-
     breakpoint()
 
 if __name__ == "__main__":

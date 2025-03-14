@@ -5,12 +5,14 @@ from pydantic_settings import BaseSettings
 
 
 class RAGConfig(BaseSettings):
-    target_repo: str = Field(alias="GIT_REPO")
+    api_key: str        = Field("", alias="GOOGLE_API_KEY")
+    target_repo: str    = Field("https://github.com/viarotel-org/escrcpy.git",
+                                alias="GIT_REPO")
 
 
 class PathConfig(BaseSettings):
-    log_root: Path      = Path("./data/logs")
     data_root: Path     = Path("./data/fetched")
-    eval_root: Path     = Path("./data/eval")
     
+    logs_path: Path      = Path("./data/runs.log")
+    eval_set_path: Path = Path("./data/eval/test.json")
     lang_map_path: Path = Path("./data/resources/langchain_ext_map.json")

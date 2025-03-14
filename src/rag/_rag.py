@@ -16,6 +16,7 @@ class RAGExtractor:
     TODO: add docstring
     """
 
+    # TODO: caching vector store index
     def __init__(self, docs_pool: list[Document]):
         embeddings = GoogleGenerativeAIEmbeddings( model="models/text-embedding-004" )
         self._vector_store = InMemoryVectorStore(embeddings)
