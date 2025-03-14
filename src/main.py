@@ -4,21 +4,21 @@ from pathlib import Path
 from git import Repo
 from dotenv import load_dotenv
 
+from scheme.config import PathConfig, RAGConfig
 from rag.rag import RAGExtractor
 from utils.data import load_docs, get_chunks
 
 
 load_dotenv()
-# TODO: Path config
-GIT_REPO = "https://github.com/viarotel-org/escrcpy.git"
-DATA_ROOT = Path("./data/fetched")
+path_config = PathConfig()
+rag_config = RAGConfig()
 
 
 async def main():
-    if not DATA_ROOT.exists():
-        Repo.clone_from(GIT_REPO, DATA_ROOT)
+    if not path_config.data_root.exists():
+        Repo.clone_from(rag_config.target_repo, path_config.data_root)
 
-    documents = load_docs(DATA_ROOT)
+    documents = load_docs(path_config)
     chunked = await get_chunks(documents)
     rag = RAGExtractor(chunked)
 

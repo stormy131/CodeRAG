@@ -2,13 +2,17 @@ import json
 import asyncio
 from pathlib import Path
 from collections import defaultdict
+from itertools import chain
 from functools import partial
 
+from scheme.config import PathConfig
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 
 
+# Preload text splitter, for each available language in langchain
 # TODO: chunk_size??
+config = PathConfig()
 splitter_factory = partial(
     RecursiveCharacterTextSplitter,
     chunk_size=50,
@@ -16,7 +20,7 @@ splitter_factory = partial(
 )
 SPLITTERS = defaultdict(splitter_factory)
 
-with open("./data/resources/langchain_ext_map.json") as f:
+with open(config.lang_map_path) as f:
     for ext, lang in json.load(f).items():
         SPLITTERS[ext] = RecursiveCharacterTextSplitter.from_language(
             language=Language._value2member_map_[lang], # pylint: disable=protected-access
@@ -26,21 +30,26 @@ with open("./data/resources/langchain_ext_map.json") as f:
 
 
 # TODO: move logging output into separate log stash
-def load_docs(root_dir: Path) -> list[Document]:
+def load_docs(path_config: PathConfig) -> list[Document]:
     docs = []
+    files = [
+        [root / f for f in files]
+        for root, _, files in path_config.data_root.walk()
+    ]
     print("Skipped files in knowledge base:")
-    for root, _, files in root_dir.walk():
-        for path in [(root / f).as_posix() for f in files]:
-            try:
-                with open(path, "r") as f:
-                    docs.append(
-                        Document(
-                            page_content=f.read(),
-                            metadata={ "source": path }
-                        )
+
+    for f_path in chain(*files):
+        try:
+            f =  open(f_path, "r")
+        except UnicodeDecodeError:
+            print(f_path)
+        else:
+            with f:
+                docs.append(
+                    Document(
+                        page_content=f.read(), metadata={ "source": f_path }
                     )
-            except UnicodeDecodeError:
-                print(path)
+                )
 
     return docs
 
@@ -56,8 +65,9 @@ async def get_chunks(docs_pool: list[Document]) -> list[Document]:
 
 
 async def test():
-    documents = load_docs( Path("./data") )
+    documents = load_docs(config)
     res = await get_chunks(documents)
+
     breakpoint()
 
 if __name__ == "__main__":

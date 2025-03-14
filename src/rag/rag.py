@@ -8,7 +8,7 @@ from langgraph.graph import StateGraph, START
 
 class RAGState(TypedDict):
     question: str
-    retrieval: list[str]
+    retrieved: list[str]
 
 
 class RAGExtractor:
@@ -28,15 +28,15 @@ class RAGExtractor:
 
     # TODO: search result pre-filtering
     async def _retrieve(self, state: RAGState) -> RAGState:
-        relevant_docs = await self._vector_store.asimilarity_search(state["question"], k=5)
+        relevant_docs = await self._vector_store.asimilarity_search(state["question"], k=10)
         return state | {
-            "retrieval": [d.metadata["source"] for d in relevant_docs]
+            "retrieved": [d.metadata["source"] for d in relevant_docs]
         }
 
 
     async def ainvoke(self, query: str) -> list[str]:
         search_result = await self._graph.ainvoke({"question": query})
-        return search_result["retrieval"]
+        return search_result["retrieved"]
 
 
 if __name__ == "__main__":
