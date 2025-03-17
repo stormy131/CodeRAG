@@ -11,8 +11,15 @@ class RAGConfig(BaseSettings):
 
 
 class PathConfig(BaseSettings):
-    data_root: Path     = Path("./data/fetched")
-    
     logs_path: Path      = Path("./data/runs.log")
     eval_set_path: Path = Path("./data/eval/test.json")
     lang_map_path: Path = Path("./data/resources/langchain_ext_map.json")
+
+    data_root: Path     = Path("./data/fetched")
+    cache_root: Path     = Path("./data/cache")
+
+
+    def __init__(self):
+        super().__init__()
+        self.data_root.parent.mkdir(parents=True, exist_ok=True)
+        self.cache_root.mkdir(parents=True, exist_ok=True)

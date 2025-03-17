@@ -1,6 +1,9 @@
 # Data
 *fetched/
 
+# RAG cache
+cache/
+
 # Logs
 *.log
 

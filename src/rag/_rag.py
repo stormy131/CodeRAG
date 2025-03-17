@@ -1,9 +1,14 @@
+import pickle
 from typing import TypedDict
 
+import faiss
+from langchain.vectorstores import FAISS
 from langchain_core.documents import Document
-from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_community.docstore import InMemoryDocstore
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from langgraph.graph import StateGraph, START
+
+from scheme.config import PathConfig
 
 
 class RAGState(TypedDict):
@@ -16,11 +21,26 @@ class RAGExtractor:
     TODO: add docstring
     """
 
-    # TODO: caching vector store index
-    def __init__(self, docs_pool: list[Document]):
+    def __init__(self, docs_pool: list[Document], path_config: PathConfig, *, load: bool = False):
+        # TODO: generic embedder from config
         embeddings = GoogleGenerativeAIEmbeddings( model="models/text-embedding-004" )
-        self._vector_store = InMemoryVectorStore(embeddings)
-        self._vector_store.add_documents(docs_pool)
+        if load:
+            self._vector_store = FAISS.load_local(
+                path_config.cache_root.as_posix(),
+                embeddings,
+                allow_dangerous_deserialization=True,
+            )
+        else:
+            index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))
+            self._vector_store = FAISS(
+                embedding_function=embeddings,
+                index=index,
+                docstore=InMemoryDocstore(),
+                index_to_docstore_id={},
+            )
+
+            self._vector_store.add_documents(docs_pool)
+            self._vector_store.save_local(path_config.cache_root.as_posix())
 
         builder = StateGraph(RAGState).add_node("retrieve", self._retrieve)
         builder.add_edge(START, "retrieve")

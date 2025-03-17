@@ -14,7 +14,10 @@ class Evaluator:
         self._config = path_config
         self._config.logs_path.touch()
         with open(self._config.eval_set_path) as f:
-            self._test_data = json.load(f)
+            self._test_data = [
+                (test_pair["files"], test_pair["question"])
+                for test_pair in json.load(f)
+            ]
 
 
     # NOTE: Recall @ 10

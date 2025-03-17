@@ -21,10 +21,8 @@ async def main():
 
     documents = load_docs(path_config)
     chunked = await get_chunks(documents)
-    rag = RAGExtractor(chunked)
+    rag = RAGExtractor(chunked, path_config, load=True)
 
-    # query = "How is the wireless pairing dialog functionality implemented?"
-    # result = await rag.ainvoke(query)
     eval = Evaluator(path_config)
     await eval.test(rag, note="langchain chunking", verbose=True)
 
