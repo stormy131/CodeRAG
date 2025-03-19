@@ -21,10 +21,10 @@ async def main():
 
     documents = load_docs(path_config)
     chunked = await get_chunks(documents)
-    rag = RAGExtractor(chunked, path_config, load=True)
+    rag = RAGExtractor(chunked, path_config, load=False)
 
     eval = Evaluator(path_config)
-    await eval.test(rag, note="langchain chunking", verbose=True)
+    await eval.test(rag, note="langchain pl chunking", verbose=True)
 
     breakpoint()
 

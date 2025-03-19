@@ -46,7 +46,7 @@ class Evaluator:
         time_avg = time_sum / len(self._test_data)
 
         with open(self._config.logs_path, "a") as f:
-            f.write(f"{note}, {quality_avg}, {time_avg}")
+            f.write(f"{note}, {quality_avg}, {time_avg}\n")
 
         print(f"Measured metrics (query averaged)")
         print(f"Retrieval quality: {quality_avg} | Time: {time_avg}\n")
