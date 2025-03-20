@@ -9,6 +9,7 @@ from langchain_community.docstore import InMemoryDocstore
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from langgraph.graph import StateGraph, START
 
+from rag._chunker import get_chunks
 from scheme.config import PathConfig
 
 
@@ -22,7 +23,9 @@ class RAGExtractor:
     TODO: add docstring
     """
 
-    def __init__(self, documents: list[Document], path_config: PathConfig, *, load: bool = False):
+    @classmethod
+    async def create(cls, documents: list[Document], path_config: PathConfig, *, load: bool = False):
+        self = cls()
         builder = StateGraph(RAGState).add_node("retrieve", self._retrieve)
         builder.add_edge(START, "retrieve")
         self._graph = builder.compile()
@@ -36,11 +39,13 @@ class RAGExtractor:
                 allow_dangerous_deserialization=True,
             )
         else:
-            self._vector_store = self._build_index(documents, embeddings) # type: ignore
+            self._vector_store = await self._build_index(documents, embeddings) # type: ignore
             self._vector_store.save_local(path_config.cache_root.as_posix())
 
+        return self
 
-    def _build_index(self, docs_pool: list[Document], embeddings: Embeddings) -> VectorStore:
+
+    async def _build_index(self, docs_pool: list[Document], embeddings: Embeddings) -> VectorStore:
         index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))
         vector_store = FAISS(
             embedding_function=embeddings,
@@ -49,7 +54,8 @@ class RAGExtractor:
             index_to_docstore_id={},
         )
 
-        vector_store.add_documents(docs_pool)
+        chunks = await get_chunks(docs_pool)
+        vector_store.add_documents(chunks)
         return vector_store
 
 

@@ -4,7 +4,7 @@ from git import Repo
 from dotenv import load_dotenv
 
 from rag import RAGExtractor
-from utils.data import load_docs, get_chunks
+from utils.data import load_docs
 from evaluation import Evaluator
 from scheme.config import PathConfig, RAGConfig
 
@@ -20,11 +20,10 @@ async def main():
         Repo.clone_from(rag_config.target_repo, path_config.data_root)
 
     documents = load_docs(path_config)
-    chunked = await get_chunks(documents)
-    rag = RAGExtractor(chunked, path_config, load=False)
+    rag = await RAGExtractor.create(documents, path_config, load=False)
 
     eval = Evaluator(path_config)
-    await eval.test(rag, note="langchain pl chunking", verbose=True)
+    await eval.test(rag, note="ast chunking", verbose=True)
 
     breakpoint()
 

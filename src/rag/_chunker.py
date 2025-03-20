@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 from functools import partial
+from pprint import pprint
 
 import tree_sitter_javascript as ts_js
 from tree_sitter import Language as TS_Lang, Parser, Node, Tree
@@ -12,18 +13,23 @@ from scheme.config import PathConfig
 
 JS = TS_Lang(ts_js.language())
 parser = Parser(JS)
+
 config = PathConfig()
 splitter_factory = partial(
     RecursiveCharacterTextSplitter,
-    chunk_size=50,
-    chunk_overlap=25,
+    chunk_size=100,
+    chunk_overlap=50,
 )
 
 TERMINAL = [
-    'if_statement',
-    'while_statement',
-    'for_statement',
-    'for_range_loop',
+    # 'if_statement',
+    # 'while_statement',
+    # 'for_statement',
+    # 'for_range_loop',
+    "export_statement",
+    "function_declaration",
+    "variable_declaration",
+    "class_declaration"
 ]
 IGNORE = ["\n"]
 SPLITTERS = defaultdict(splitter_factory)
@@ -82,18 +88,30 @@ async def get_chunks(documents: list[Document]) -> list[Document]:
         if ext == "js":
             tree = parser.parse(bytes(doc.page_content, "utf-8"))
             subtrees = _get_subtrees(tree)
-            result.extend([
-                Document(
-                    page_content=doc.page_content[
-                        t_node.start_byte:t_node.end_byte
-                    ],
-                    metadata=doc.metadata,
+
+            if subtrees:
+                result.extend(
+                    [
+                        Document(
+                            page_content=doc.page_content[
+                                t_node.start_byte:t_node.end_byte
+                            ],
+                            metadata=doc.metadata,
+                        )
+                        for t_node in subtrees
+                    ]
                 )
-                for t_node in subtrees
-            ])
+            else:
+                result.append(
+                    Document(page_content=doc.page_content, metadata=doc.metadata)
+                )
+            
+            # breakpoint()
+
         else:
             splitter = SPLITTERS[ext]
-            result.extend(await splitter.atransform_documents([doc]))
+            subtrees = await splitter.atransform_documents([doc])
+            result.extend(subtrees)
 
     return result
 
@@ -120,3 +138,4 @@ if __name__ == "__main__":
     """
 
     tree = parser.parse(bytes(code, "utf-8"))
+# 
