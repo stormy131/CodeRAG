@@ -20,13 +20,11 @@ async def main():
         Repo.clone_from(rag_config.target_repo, path_config.data_root)
 
     documents = load_docs(path_config)
-    chunked = await get_chunks(documents)
-    rag = RAGExtractor(chunked, path_config, load=True)
+    # chunked = await get_chunks(documents)
+    rag = RAGExtractor(documents, path_config, load=False)
 
     eval = Evaluator(path_config)
-    await eval.test(rag, note="langchain chunking", verbose=True)
-
-    breakpoint()
+    await eval.test(rag, note="hybrid", verbose=True)
 
 
 if __name__ == "__main__":

@@ -4,10 +4,13 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
+DEFAULT_REPO = "https://github.com/viarotel-org/escrcpy.git"
+
+
 class RAGConfig(BaseSettings):
     api_key: str        = Field("", alias="GOOGLE_API_KEY")
-    target_repo: str    = Field("https://github.com/viarotel-org/escrcpy.git",
-                                alias="GIT_REPO")
+    target_repo: str    = Field(DEFAULT_REPO, alias="GIT_REPO")
+    encoder: str        = Field("microsoft/codebert-base", alias="ENCODER_MODEL")
 
 
 class PathConfig(BaseSettings):
