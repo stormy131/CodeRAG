@@ -14,12 +14,12 @@ class RAGConfig(BaseSettings):
 
 
 class PathConfig(BaseSettings):
-    logs_path: Path      = Path("./data/runs.log")
+    logs_path: Path     = Path("./data/runs.log")
     eval_set_path: Path = Path("./data/eval/test.json")
     lang_map_path: Path = Path("./data/resources/langchain_ext_map.json")
 
     data_root: Path     = Path("./data/fetched")
-    cache_root: Path     = Path("./data/cache")
+    cache_root: Path    = Path("./data/cache")
 
 
     def __init__(self):

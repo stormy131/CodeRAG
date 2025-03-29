@@ -7,6 +7,7 @@ from rag import RAGExtractor
 from utils.data import load_docs, get_chunks
 from evaluation import Evaluator
 from scheme.config import PathConfig, RAGConfig
+from rag._chunker import get_chunks
 
 
 load_dotenv()
@@ -21,10 +22,11 @@ async def main():
 
     documents = load_docs(path_config)
     # chunked = await get_chunks(documents)
-    rag = RAGExtractor(documents, path_config, load=False)
+    chunked = await get_chunks(documents)
+    rag = RAGExtractor(chunked, path_config, load=False)
 
     eval = Evaluator(path_config)
-    await eval.test(rag, note="hybrid", verbose=True)
+    await eval.test(rag, note="hybrid + flash_rerank", verbose=True)
 
 
 if __name__ == "__main__":

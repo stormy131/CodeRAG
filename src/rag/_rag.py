@@ -9,7 +9,6 @@ from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from langgraph.graph import StateGraph, START
 from langchain_core.embeddings import Embeddings
 
-from ._encoder import PretrainedEmbeddings
 from scheme.config import PathConfig, RAGConfig
 
 
@@ -28,8 +27,8 @@ class RAGExtractor:
 
     def __init__(self, docs_pool: list[Document], path_config: PathConfig, *, load: bool = False):
         self._config = path_config
-        # embeddings = GoogleGenerativeAIEmbeddings( model="models/text-embedding-004" )
-        embeddings = PretrainedEmbeddings(config.encoder)
+        embeddings = GoogleGenerativeAIEmbeddings( model="models/text-embedding-004" )
+        # embeddings = PretrainedEmbeddings(config.encoder)
 
         bm25_retriever = BM25Retriever.from_texts(
             [d.page_content for d in docs_pool],
@@ -60,7 +59,7 @@ class RAGExtractor:
 
 
     def _build_dense_store(self, docs_pool: list[Document], embeddings: Embeddings):
-        index = faiss.IndexHNSWFlat(len(embeddings.embed_query("hello world")), 32)
+        index = faiss.IndexHNSWFlat(len(embeddings.embed_query("hello world")), 16)
 
         vectore_store = FAISS(
             embedding_function=embeddings,
