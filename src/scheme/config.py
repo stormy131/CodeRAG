@@ -11,16 +11,18 @@ class RAGConfig(BaseSettings):
     api_key: str        = Field("", alias="GOOGLE_API_KEY")
     target_repo: str    = Field(DEFAULT_REPO, alias="GIT_REPO")
     encoder: str        = Field("microsoft/codebert-base", alias="ENCODER_MODEL")
+    llm_slug: str       = Field("gemini-1.5-flash", alias="LLM")
 
 
+_DATA_ROOT = Path("./data")
 class PathConfig(BaseSettings):
-    logs_path: Path     = Path("./data/runs.log")
-    eval_set_path: Path = Path("./data/eval/test.json")
-    lang_map_path: Path = Path("./data/resources/langchain_ext_map.json")
+    logs_path: Path     = _DATA_ROOT / "runs.log"
+    eval_set_path: Path = _DATA_ROOT / "eval/test.json"
+    lang_map_path: Path = _DATA_ROOT / "resources/langchain_ext_map.json"
 
-    data_root: Path     = Path("./data/fetched")
-    cache_root: Path    = Path("./data/cache")
-
+    data_root: Path     = _DATA_ROOT / "fetched"
+    cache_root: Path    = _DATA_ROOT / "cache"
+    prompts_root: Path  = _DATA_ROOT / "prompts"
 
     def __init__(self):
         super().__init__()

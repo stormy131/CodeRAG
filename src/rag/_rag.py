@@ -1,23 +1,18 @@
-from typing import TypedDict
-
 import faiss
 from langchain.retrievers import EnsembleRetriever, BM25Retriever
 from langchain.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_community.docstore import InMemoryDocstore
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, START
 from langchain_core.embeddings import Embeddings
 
 from scheme.config import PathConfig, RAGConfig
+from .utils.graph_builder import build_graph
 
 
 config = RAGConfig()
-
-
-class RAGState(TypedDict):
-    question: str
-    retrieved: list[str]
 
 
 class RAGExtractor:
@@ -45,7 +40,7 @@ class RAGExtractor:
         else:
             dense_store = self._build_dense_store(docs_pool, embeddings)
 
-        self._ret = EnsembleRetriever(
+        self._retriever = EnsembleRetriever(
             retrievers=[
                 dense_store.as_retriever(search_kwargs={"k": 10}),
                 bm25_retriever,
@@ -53,9 +48,7 @@ class RAGExtractor:
             weights=[0.5, 0.5],
         )
 
-        builder = StateGraph(RAGState).add_node("retrieve", self._retrieve)
-        builder.add_edge(START, "retrieve")
-        self._graph = builder.compile()
+        self._graph = build_graph(self._retriever)
 
 
     def _build_dense_store(self, docs_pool: list[Document], embeddings: Embeddings):
@@ -73,15 +66,12 @@ class RAGExtractor:
         return vectore_store
 
 
-    async def _retrieve(self, state: RAGState) -> RAGState:
-        relevant_docs = await self._ret.ainvoke(state["question"])
-        return state | {
-            "retrieved": [d.metadata["source"] for d in relevant_docs]
-        }
-
-
     async def ainvoke(self, query: str) -> list[str]:
-        search_result = await self._graph.ainvoke({"question": query})
+        search_result = await self._graph.ainvoke({
+            "question": query,
+            "require_summary": False,
+        })
+
         return search_result["retrieved"]
 
 
