@@ -34,7 +34,7 @@ class Evaluator:
         quality_sum, time_sum = 0.0, 0.0
         for relevant, query in self._test_data:
             start_time = time.perf_counter()
-            retrieved = await ranker.ainvoke(query)
+            retrieved = await ranker.aretrieve(query)
 
             time_sum += time.perf_counter() - start_time
             quality_sum += self._quality_metric(relevant, retrieved)

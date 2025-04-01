@@ -13,24 +13,15 @@ from scheme.config import PathConfig
 
 JS = TS_Lang(ts_js.language())
 parser = Parser(JS)
-
 config = PathConfig()
+
+# NOTE: Default LangChain cide splitters
 splitter_factory = partial(
     RecursiveCharacterTextSplitter,
     chunk_size=100,
     chunk_overlap=50,
 )
-
-TERMINAL = [
-    "export_statement",
-    "function_declaration",
-    "variable_declaration",
-    "lexical_declaration",
-    "class_declaration"
-]
-IGNORE = ["\n"]
 SPLITTERS = defaultdict(splitter_factory)
-
 with open(config.lang_map_path) as f:
     for ext, lang in json.load(f).items():
         SPLITTERS[ext] = RecursiveCharacterTextSplitter.from_language(
@@ -38,6 +29,17 @@ with open(config.lang_map_path) as f:
             chunk_size=100,
             chunk_overlap=50,
         )
+
+
+# NOTE: Custom AST parsing
+IGNORE = ["\n"]
+TERMINAL = [
+    "export_statement",
+    "function_declaration",
+    "variable_declaration",
+    "lexical_declaration",
+    "class_declaration"
+]
 
 
 def _parse_subtree(root: Node) -> list[Node]:
@@ -109,9 +111,9 @@ async def get_chunks(documents: list[Document]) -> list[Document]:
     return result
 
 
-async def main(text: str):
+async def _main(text: str):
     result = await get_chunks([Document(page_content=text, metadata={"source": "test.js"})])
-    breakpoint()
+    print(result)
 
 
 if __name__ == "__main__":
@@ -136,4 +138,4 @@ if __name__ == "__main__":
     """
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(code))
+    loop.run_until_complete(_main(code))

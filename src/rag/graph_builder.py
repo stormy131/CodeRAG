@@ -1,28 +1,29 @@
 from typing import TypedDict, Literal
 
 from langgraph.graph import StateGraph, START, END
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.output_parsers import StrOutputParser
-
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from scheme.config import PathConfig, RAGConfig
+from scheme.graph import RAGState
+from utils.prompts import make_context_prompt
 
 
 path_config, rag_config = PathConfig(), RAGConfig()
-llm = ChatGoogleGenerativeAI(
-    model=rag_config.llm_slug,
-    temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
+
+llm = ChatOpenAI(
+    openai_api_key=rag_config.api_key,
+    openai_api_base="https://openrouter.ai/api/v1",
+    model_name=rag_config.llm_slug,
 )
 
 chains: dict[str, Runnable] = {}
 chat_template = ChatPromptTemplate.from_messages([
     MessagesPlaceholder("system"),
+    MessagesPlaceholder("context"),
     MessagesPlaceholder("user"),
 ])
 
@@ -36,24 +37,16 @@ for f_name in path_config.prompts_root.glob("*.txt"):
         )
 
 
-class RAGState(TypedDict):
-    question: str
-    retrieved: list[str]
-
-    # LLM integration
-    require_summary: bool
-    answer: str
-
-
+# NOTE: Graph nodes
 async def _expander(state: RAGState) -> RAGState:
     query = state["question"]
-    # print(query)
-    extended = await chains["expand"].ainvoke({ "user": [query] })
-    # print(extended)
+    extended = await chains["expand"].ainvoke({
+        "user": [ query ],
+        "context": [ "" ],
+    })
 
     return state | {
         "question": extended,
-        # "question": query,
     }
 
 
@@ -68,9 +61,9 @@ def _retrieve(retriever: BaseRetriever):
 
 
 async def _summary(state: RAGState) -> RAGState:
-    result = await chains["llm_answer"].ainvoke({
-        "question": state["question"],
-        "context": state["retrieved"]
+    result = await chains["summarize"].ainvoke({
+        "user": [ state["question"] ],
+        "context": [ make_context_prompt(state["retrieved"]) ],
     })
 
     return state | {
@@ -78,10 +71,16 @@ async def _summary(state: RAGState) -> RAGState:
     }
 
 
+# NOTE: Conditional edges
 def _reponse_routing(state: RAGState) -> Literal["summary", "end"]:
-    return "summary" if state["require_summary"] else "end"
+    return "summary" if state["task_config"].summarize else "end"
 
 
+def _query_init(state: RAGState) -> Literal["expand", "retrieve"]:
+    return "expand" if state["task_config"].expand_query else "retrieve"
+
+
+# NOTE: graph compilation
 def build_graph(rag_retriever: BaseRetriever):
     builder = StateGraph(RAGState)
     builder.add_node("llm_answer", _summary)
@@ -90,9 +89,10 @@ def build_graph(rag_retriever: BaseRetriever):
         ("retrieve", _retrieve(rag_retriever)),
     ])
 
-    builder.add_edge(START, "expand")
+    # builder.add_edge(START, "expand")
+    builder.add_conditional_edges(START, _query_init)
     builder.add_conditional_edges(
-        "expand",
+        "retrieve",
         _reponse_routing,
         {
             "summary": "llm_answer",
