@@ -1,23 +1,18 @@
-from typing import TypedDict
-
 import faiss
-from langchain.retrievers import EnsembleRetriever, BM25Retriever
-from langchain.vectorstores import FAISS
-from langchain_core.documents import Document
+from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
+from langchain_community.vectorstores import FAISS
 from langchain_community.docstore import InMemoryDocstore
-from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
-from langgraph.graph import StateGraph, START
+from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 
 from scheme.config import PathConfig, RAGConfig
+from scheme.graph import TaskConfig
+from .graph_builder import build_graph
 
 
 config = RAGConfig()
-
-
-class RAGState(TypedDict):
-    question: str
-    retrieved: list[str]
 
 
 class RAGExtractor:
@@ -30,7 +25,7 @@ class RAGExtractor:
         embeddings = GoogleGenerativeAIEmbeddings( model="models/text-embedding-004" )
         # embeddings = PretrainedEmbeddings(config.encoder)
 
-        bm25_retriever = BM25Retriever.from_texts(
+        bm25_retriever = BM25Retriever.from_texts(  
             [d.page_content for d in docs_pool],
             metadatas=[d.metadata for d in docs_pool],
         )
@@ -45,17 +40,15 @@ class RAGExtractor:
         else:
             dense_store = self._build_dense_store(docs_pool, embeddings)
 
-        self._ret = EnsembleRetriever(
+        self._retriever = EnsembleRetriever(
             retrievers=[
                 dense_store.as_retriever(search_kwargs={"k": 10}),
                 bm25_retriever,
             ],
-            weights=[0.5, 0.5],
+            weights=[2, 3],
         )
 
-        builder = StateGraph(RAGState).add_node("retrieve", self._retrieve)
-        builder.add_edge(START, "retrieve")
-        self._graph = builder.compile()
+        self._graph = build_graph(self._retriever)
 
 
     def _build_dense_store(self, docs_pool: list[Document], embeddings: Embeddings):
@@ -73,16 +66,22 @@ class RAGExtractor:
         return vectore_store
 
 
-    async def _retrieve(self, state: RAGState) -> RAGState:
-        relevant_docs = await self._ret.ainvoke(state["question"])
-        return state | {
-            "retrieved": [d.metadata["source"] for d in relevant_docs]
-        }
+    async def aretrieve(self, query: str, expand: bool=False) -> list[str]:
+        search_result = await self._graph.ainvoke({
+            "question": query,
+            "task_config": TaskConfig(summarize=False, expand_query=expand),
+        })
 
-
-    async def ainvoke(self, query: str) -> list[str]:
-        search_result = await self._graph.ainvoke({"question": query})
         return search_result["retrieved"]
+    
+
+    async def aanswer(self, query: str, expand: bool=False) -> str:
+        search_result = await self._graph.ainvoke({
+            "question": query,
+            "task_config": TaskConfig(summarize=True, expand_query=expand),
+        })
+
+        return search_result["answer"]
 
 
 if __name__ == "__main__":

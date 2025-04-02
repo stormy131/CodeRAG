@@ -33,7 +33,7 @@ def load_docs(path_config: PathConfig) -> list[Document]:
     docs = []
     files = [
         [root / f for f in files]
-        for root, _, files in path_config.data_root.walk()
+        for root, _, files in path_config.code_repo_root.walk()
     ]
     print("Skipped files in knowledge base:")
 
@@ -43,7 +43,7 @@ def load_docs(path_config: PathConfig) -> list[Document]:
                 docs.append(Document(
                     page_content=f.read(),
                     metadata={
-                        "source": f_path.relative_to(path_config.data_root).as_posix()
+                        "source": f_path.relative_to(path_config.code_repo_root).as_posix()
                     }
                 ))
             except UnicodeDecodeError:
