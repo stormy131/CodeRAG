@@ -12,7 +12,6 @@ class Evaluator:
 
     def __init__(self, path_config: PathConfig):
         self._config = path_config
-        self._config.logs_path.touch()
         with open(self._config.eval_set_path) as f:
             self._test_data = [
                 (test_pair["files"], test_pair["question"])
@@ -32,9 +31,10 @@ class Evaluator:
 
     async def test(self, ranker: Ranker, *, note: str = "RAG run", verbose: bool = False):
         quality_sum, time_sum = 0.0, 0.0
+        # TODO: progress
         for relevant, query in self._test_data:
             start_time = time.perf_counter()
-            retrieved = await ranker.aretrieve(query)
+            _, retrieved = await ranker.ainvoke(query)
 
             time_sum += time.perf_counter() - start_time
             quality_sum += self._quality_metric(relevant, retrieved)

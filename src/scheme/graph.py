@@ -6,6 +6,8 @@ TaskConfig = NamedTuple(
     [
         ("summarize", bool),
         ("expand_query", bool),
+        ("verbose", bool),
+        ("build_index", bool),
     ],
 )
 
@@ -14,4 +16,4 @@ class RAGState(TypedDict):
     question: str
     retrieved: list[str]
     task_config: TaskConfig
-    answer: str
+    answer: str | None

@@ -30,7 +30,6 @@ class PretrainedEmbeddings(Embeddings):
             output = self._model(**tokens)
 
         embedding = output.last_hidden_state.mean(dim=1).squeeze().cpu().numpy()
-
         return embedding
 
 

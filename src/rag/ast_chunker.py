@@ -15,7 +15,7 @@ JS = TS_Lang(ts_js.language())
 parser = Parser(JS)
 config = PathConfig()
 
-# NOTE: Default LangChain cide splitters
+# NOTE: Default LangChain code splitters
 splitter_factory = partial(
     RecursiveCharacterTextSplitter,
     chunk_size=100,
@@ -27,7 +27,7 @@ with open(config.lang_map_path) as f:
         SPLITTERS[ext] = RecursiveCharacterTextSplitter.from_language(
             language=Language._value2member_map_[lang], # pylint: disable=protected-access
             chunk_size=100,
-            chunk_overlap=50,
+            chunk_overlap=20,
         )
 
 

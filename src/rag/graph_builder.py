@@ -1,6 +1,7 @@
-from typing import TypedDict, Literal
+from typing import Literal
 
 from langgraph.graph import StateGraph, START, END
+from langgraph.graph.state import CompiledStateGraph
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import Runnable
 from langchain_core.retrievers import BaseRetriever
@@ -20,6 +21,8 @@ llm = ChatOpenAI(
     model_name=rag_config.llm_slug,
 )
 
+
+# NOTE: Chain preparation for different LLM use-cases
 chains: dict[str, Runnable] = {}
 chat_template = ChatPromptTemplate.from_messages([
     MessagesPlaceholder("system"),
@@ -45,6 +48,7 @@ async def _expander(state: RAGState) -> RAGState:
         "context": [ "" ],
     })
 
+    if state["task_config"].verbose: print(f"Expanded query: {extended}")
     return state | {
         "question": extended,
     }
@@ -54,7 +58,8 @@ def _retrieve(retriever: BaseRetriever):
     async def helper(state: RAGState) -> RAGState:
         relevant_docs = await retriever.ainvoke(state["question"])
         return state | {
-            "retrieved": [d.metadata["source"] for d in relevant_docs]
+            "retrieved": [d.metadata["source"] for d in relevant_docs],
+            "answer": None,
         }
     
     return helper
@@ -81,7 +86,7 @@ def _query_init(state: RAGState) -> Literal["expand", "retrieve"]:
 
 
 # NOTE: graph compilation
-def build_graph(rag_retriever: BaseRetriever):
+def build_graph(rag_retriever: BaseRetriever) -> CompiledStateGraph:
     builder = StateGraph(RAGState)
     builder.add_node("llm_answer", _summary)
     builder.add_sequence([
@@ -89,7 +94,7 @@ def build_graph(rag_retriever: BaseRetriever):
         ("retrieve", _retrieve(rag_retriever)),
     ])
 
-    # builder.add_edge(START, "expand")
+    builder.add_edge("llm_answer", END)
     builder.add_conditional_edges(START, _query_init)
     builder.add_conditional_edges(
         "retrieve",

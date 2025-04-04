@@ -29,13 +29,12 @@ with open(config.lang_map_path) as f:
 
 
 # TODO: move logging output into separate log stash
-def load_docs(path_config: PathConfig) -> list[Document]:
+def load_docs(path_config: PathConfig, verbose: bool=False) -> list[Document]:
     docs = []
     files = [
         [root / f for f in files]
         for root, _, files in path_config.code_repo_root.walk()
     ]
-    print("Skipped files in knowledge base:")
 
     for f_path in chain(*files):
         with open(f_path, "r") as f:
@@ -47,7 +46,7 @@ def load_docs(path_config: PathConfig) -> list[Document]:
                     }
                 ))
             except UnicodeDecodeError:
-                print(f_path)
+                if verbose: print("Skipping", f_path)
 
     return docs
 

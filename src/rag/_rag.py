@@ -20,8 +20,14 @@ class RAGExtractor:
     TODO: add docstring
     """
 
-    def __init__(self, docs_pool: list[Document], path_config: PathConfig, *, load: bool = False):
+    def __init__(
+        self,
+        docs_pool: list[Document],
+        path_config: PathConfig,
+        task_config: TaskConfig,
+    ):
         self._config = path_config
+        self._task_config = task_config
         embeddings = GoogleGenerativeAIEmbeddings( model="models/text-embedding-004" )
         # embeddings = PretrainedEmbeddings(config.encoder)
 
@@ -31,7 +37,7 @@ class RAGExtractor:
         )
         bm25_retriever.k = 10
 
-        if load:
+        if not self._task_config.build_index:
             dense_store = FAISS.load_local(
                 path_config.cache_root.as_posix(),
                 embeddings,
@@ -45,7 +51,7 @@ class RAGExtractor:
                 dense_store.as_retriever(search_kwargs={"k": 10}),
                 bm25_retriever,
             ],
-            weights=[2, 3],
+            weights=[0.5, 0.5],
         )
 
         self._graph = build_graph(self._retriever)
@@ -64,24 +70,15 @@ class RAGExtractor:
         vectore_store.save_local(self._config.cache_root.as_posix())
 
         return vectore_store
-
-
-    async def aretrieve(self, query: str, expand: bool=False) -> list[str]:
-        search_result = await self._graph.ainvoke({
-            "question": query,
-            "task_config": TaskConfig(summarize=False, expand_query=expand),
-        })
-
-        return search_result["retrieved"]
     
 
-    async def aanswer(self, query: str, expand: bool=False) -> str:
+    async def ainvoke(self, query: str) -> tuple[str, list[str]]:
         search_result = await self._graph.ainvoke({
             "question": query,
-            "task_config": TaskConfig(summarize=True, expand_query=expand),
+            "task_config": self._task_config,
         })
 
-        return search_result["answer"]
+        return search_result["answer"], search_result["retrieved"]
 
 
 if __name__ == "__main__":

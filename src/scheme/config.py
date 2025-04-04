@@ -23,5 +23,7 @@ class PathConfig(BaseSettings):
 
     def __init__(self):
         super().__init__()
-        self.code_repo_root.parent.mkdir(parents=True, exist_ok=True)
+
+        self.logs_path.touch(exist_ok=True)
         self.cache_root.mkdir(parents=True, exist_ok=True)
+        self.code_repo_root.parent.mkdir(parents=True, exist_ok=True)
