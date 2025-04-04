@@ -13,6 +13,7 @@ from scheme.graph import RAGState
 from utils.prompts import make_context_prompt
 
 
+# Load global configurations for paths and RAG settings
 path_config, rag_config = PathConfig(), RAGConfig()
 
 llm = ChatOpenAI(
@@ -24,6 +25,8 @@ llm = ChatOpenAI(
 
 # NOTE: Chain preparation for different LLM use-cases
 chains: dict[str, Runnable] = {}
+
+# Define a chat prompt template with placeholders for system, context, and user messages
 chat_template = ChatPromptTemplate.from_messages([
     MessagesPlaceholder("system"),
     MessagesPlaceholder("context"),
@@ -44,11 +47,13 @@ for f_name in path_config.prompts_root.glob("*.txt"):
 async def _expander(state: RAGState) -> RAGState:
     query = state["question"]
     extended = await chains["expand"].ainvoke({
-        "user": [ query ],
-        "context": [ "" ],
+        "user": [query],
+        "context": [""],
     })
 
-    if state["task_config"].verbose: print(f"Expanded query: {extended}")
+    if state["task_config"].verbose:
+        print(f"Expanded query: {extended}")
+
     return state | {
         "question": extended,
     }
@@ -67,8 +72,8 @@ def _retrieve(retriever: BaseRetriever):
 
 async def _summary(state: RAGState) -> RAGState:
     result = await chains["summarize"].ainvoke({
-        "user": [ state["question"] ],
-        "context": [ make_context_prompt(state["retrieved"]) ],
+        "user": [state["question"]],
+        "context": [make_context_prompt(state["retrieved"])],
     })
 
     return state | {
@@ -78,16 +83,35 @@ async def _summary(state: RAGState) -> RAGState:
 
 # NOTE: Conditional edges
 def _reponse_routing(state: RAGState) -> Literal["summary", "end"]:
+    """
+    Determines the last step based on whether summarization is enabled.
+
+    Args:
+        state (RAGState): The current state of the retrieval process.
+
+    Returns:
+        Literal["summary", "end"]: The next node to transition to.
+    """
     return "summary" if state["task_config"].summarize else "end"
 
 
 def _query_init(state: RAGState) -> Literal["expand", "retrieve"]:
+    """
+    Determines the initial step based on whether query expansion is enabled.
+
+    Args:
+        state (RAGState): The current state of the retrieval process.
+
+    Returns:
+        Literal["expand", "retrieve"]: The next node to transition to.
+    """
     return "expand" if state["task_config"].expand_query else "retrieve"
 
 
-# NOTE: graph compilation
+# NOTE: Graph compilation
 def build_graph(rag_retriever: BaseRetriever) -> CompiledStateGraph:
     builder = StateGraph(RAGState)
+
     builder.add_node("llm_answer", _summary)
     builder.add_sequence([
         ("expand", _expander),

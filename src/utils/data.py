@@ -1,36 +1,27 @@
-import json
-import asyncio
-from collections import defaultdict
 from itertools import chain
-from functools import partial
 
 from scheme.config import PathConfig
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
 
 
-# Preload text splitter, for each available language in langchain
-# TODO: chunk_size??
+# Load global path configuration
 config = PathConfig()
-splitter_factory = partial(
-    RecursiveCharacterTextSplitter,
-    chunk_size=50,
-    chunk_overlap=0,
-)
-SPLITTERS = defaultdict(splitter_factory)
-
-with open(config.lang_map_path) as f:
-    for ext, lang in json.load(f).items():
-        SPLITTERS[ext] = RecursiveCharacterTextSplitter.from_language(
-            language=Language._value2member_map_[lang], # pylint: disable=protected-access
-            chunk_size=100,
-            chunk_overlap=0,
-        )
 
 
-# TODO: move logging output into separate log stash
-def load_docs(path_config: PathConfig, verbose: bool=False) -> list[Document]:
+def load_docs(path_config: PathConfig, verbose: bool = False) -> list[Document]:
+    """
+    Loads documents from the code repository.
+
+    Args:
+        path_config (PathConfig): Configuration object containing repository paths.
+        verbose (bool): If True, logs skipped files.
+
+    Returns:
+        list[Document]: List of documents loaded from the repository.
+    """
+
     docs = []
+
     files = [
         [root / f for f in files]
         for root, _, files in path_config.code_repo_root.walk()
@@ -51,21 +42,5 @@ def load_docs(path_config: PathConfig, verbose: bool=False) -> list[Document]:
     return docs
 
 
-async def get_chunks(docs_pool: list[Document]) -> list[Document]:
-    chunks: list[Document] = []
-    for doc in docs_pool:
-        ext = doc.metadata["source"].split(".")[-1]
-        splitter = SPLITTERS[ext]
-        chunks.extend( await splitter.atransform_documents([doc]) )
-
-    return chunks
-
-
-async def test():
-    documents = load_docs(config)
-    res = await get_chunks(documents)
-    breakpoint()
-
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(test())
+    documents = load_docs(config)

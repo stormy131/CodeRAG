@@ -46,7 +46,7 @@ async def main(args: Namespace):
                 pass
         case "evaluate":
             eval = Evaluator(path_config)
-            await eval.test(rag, note="hybrid + flash_rerank", verbose=args.verbose)
+            await eval.test(rag, note="test run", verbose=args.verbose)
         case _:
             raise ValueError("Invalid mode argument.")
 

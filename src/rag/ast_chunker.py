@@ -15,23 +15,23 @@ JS = TS_Lang(ts_js.language())
 parser = Parser(JS)
 config = PathConfig()
 
-# NOTE: Default LangChain code splitters
+# Default LangChain code splitters
 splitter_factory = partial(
     RecursiveCharacterTextSplitter,
     chunk_size=100,
     chunk_overlap=50,
 )
+
 SPLITTERS = defaultdict(splitter_factory)
 with open(config.lang_map_path) as f:
     for ext, lang in json.load(f).items():
         SPLITTERS[ext] = RecursiveCharacterTextSplitter.from_language(
-            language=Language._value2member_map_[lang], # pylint: disable=protected-access
+            language=Language._value2member_map_[lang],  # pylint: disable=protected-access
             chunk_size=100,
             chunk_overlap=20,
         )
 
-
-# NOTE: Custom AST parsing
+# Constants for AST parsing
 IGNORE = ["\n"]
 TERMINAL = [
     "export_statement",
@@ -43,6 +43,15 @@ TERMINAL = [
 
 
 def _parse_subtree(root: Node) -> list[Node]:
+    """
+    Parses a subtree of the AST starting from the given root node.
+
+    Args:
+        root (Node): The root node of the subtree.
+
+    Returns:
+        list[Node]: A list of terminal nodes found in the subtree.
+    """
     subtree_nodes = []
     queue = [root]
 
@@ -62,6 +71,15 @@ def _parse_subtree(root: Node) -> list[Node]:
 
 
 def _get_subtrees(tree: Tree) -> list[Node]:
+    """
+    Extracts all terminal subtrees from the given AST.
+
+    Args:
+        tree (Tree): The AST to process.
+
+    Returns:
+        list[Node]: A list of terminal nodes representing subtrees.
+    """
     all_subtrees = []
     queue = [tree.root_node]
 
@@ -77,14 +95,22 @@ def _get_subtrees(tree: Tree) -> list[Node]:
     return all_subtrees
 
 
-# TODO: review TS language mapping in resources
 async def get_chunks(documents: list[Document]) -> list[Document]:
+    """
+    Splits documents into smaller chunks using AST parsing or text splitting.
+
+    Args:
+        documents (list[Document]): List of documents to process.
+
+    Returns:
+        list[Document]: List of chunked documents.
+    """
     result = []
 
     for doc in documents:
         ext = doc.metadata["source"].split(".")[-1]
 
-        if ext == "js":
+        if ext == "js":  # Use AST parsing for JavaScript files
             tree = parser.parse(bytes(doc.page_content, "utf-8"))
             subtrees = _get_subtrees(tree)
 
@@ -103,7 +129,7 @@ async def get_chunks(documents: list[Document]) -> list[Document]:
                 result.append(
                     Document(page_content=doc.page_content, metadata=doc.metadata)
                 )
-        else:
+        else:  # Use default text splitters for other file types
             splitter = SPLITTERS[ext]
             subtrees = await splitter.atransform_documents([doc])
             result.extend(subtrees)
