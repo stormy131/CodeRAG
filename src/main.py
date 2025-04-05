@@ -25,6 +25,7 @@ args = parser.parse_args()
 
 async def main(args: Namespace):
     if not path_config.code_repo_root.exists():
+        print(f"Cloning the codebase for the RAG system...")
         Repo.clone_from(rag_config.target_repo, path_config.code_repo_root)
 
     mode = args.__dict__.pop("mode")

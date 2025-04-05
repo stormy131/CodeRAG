@@ -23,7 +23,7 @@ llm = ChatOpenAI(
 )
 
 
-# NOTE: Chain preparation for different LLM use-cases
+# Chain preparation for different LLM use-cases
 chains: dict[str, Runnable] = {}
 
 # Define a chat prompt template with placeholders for system, context, and user messages
@@ -43,7 +43,7 @@ for f_name in path_config.prompts_root.glob("*.txt"):
         )
 
 
-# NOTE: Graph nodes
+# Graph nodes
 async def _expander(state: RAGState) -> RAGState:
     query = state["question"]
     extended = await chains["expand"].ainvoke({
@@ -81,7 +81,7 @@ async def _summary(state: RAGState) -> RAGState:
     }
 
 
-# NOTE: Conditional edges
+# Conditional edges
 def _reponse_routing(state: RAGState) -> Literal["summary", "end"]:
     """
     Determines the last step based on whether summarization is enabled.
@@ -108,7 +108,7 @@ def _query_init(state: RAGState) -> Literal["expand", "retrieve"]:
     return "expand" if state["task_config"].expand_query else "retrieve"
 
 
-# NOTE: Graph compilation
+# Graph compilation
 def build_graph(rag_retriever: BaseRetriever) -> CompiledStateGraph:
     builder = StateGraph(RAGState)
 

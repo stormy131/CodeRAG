@@ -41,7 +41,7 @@ class RAGExtractor:
         self._task_config = task_config
 
         embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
-        # NOTE: Use alternative pretrained embeddings
+        # NOTE: uncomment lines below for alternative pretrained embeddings
         # embeddings = PretrainedEmbeddings(config.encoder)
 
         bm25_retriever = BM25Retriever.from_texts(
@@ -51,6 +51,10 @@ class RAGExtractor:
         bm25_retriever.k = 10
 
         if not self._task_config.build_index:
+            assert \
+                (path_config.cache_root / "index.faiss").exists(),\
+                "Dense vectorS store cache does not exist. Build the index first."
+
             dense_store = FAISS.load_local(
                 path_config.cache_root.as_posix(),
                 embeddings,
@@ -59,13 +63,15 @@ class RAGExtractor:
         else:
             dense_store = self._build_dense_store(docs_pool, embeddings)
 
+        # NOTE: uncomment lines below for hybrid retrieval
         self._retriever = EnsembleRetriever(
             retrievers=[
                 dense_store.as_retriever(search_kwargs={"k": 10}),
-                bm25_retriever,
+                # bm25_retriever,
             ],
-            weights=[0.5, 0.5],
+            # weights=[0.5, 0.5],
         )
+
         self._graph = build_graph(self._retriever)
 
     def _build_dense_store(self, docs_pool: list[Document], embeddings: Embeddings):
@@ -80,7 +86,7 @@ class RAGExtractor:
             FAISS: A dense vector store for document retrieval.
         """
 
-        index = faiss.IndexHNSWFlat(len(embeddings.embed_query("hello world")), 16)
+        index = faiss.IndexHNSWFlat(len(embeddings.embed_query("hello world")), 32)
         vector_store = FAISS(
             embedding_function=embeddings,
             index=index,

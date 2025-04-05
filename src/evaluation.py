@@ -31,8 +31,7 @@ class Evaluator:
                 for test_pair in json.load(f)
             ]
 
-
-    # NOTE: Recall @ 10
+    # Recall quality metric
     def _quality_metric(self, relevant: list[str], retrieved: list[str]) -> float:
         """
         Calculates the quality metric.
@@ -56,7 +55,7 @@ class Evaluator:
             logs = [line.strip().split(", ") for line in f.readlines()]
             slugs, quality, time = zip(*logs)
 
-        labels = set(slugs)
+        labels = sorted(set(slugs))
         colors = plt.cm.tab20.colors
         label_to_color = {label: colors[i] for i, label in enumerate(labels)}
 
@@ -106,10 +105,10 @@ class Evaluator:
             _, retrieved = await ranker.ainvoke(query)
 
             time_sum += time.perf_counter() - start_time
-            quality_sum += self._quality_metric(relevant, retrieved)
+            quality_sum += self._quality_metric(relevant, retrieved[:10])
 
             if verbose:
-                print(f"Recall: {self._quality_metric(relevant, retrieved)}")
+                print(f"Recall: {self._quality_metric(relevant, retrieved[:10])}")
 
         quality_avg = quality_sum / len(self._test_data)
         time_avg = time_sum / len(self._test_data)

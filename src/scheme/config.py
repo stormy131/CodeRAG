@@ -5,9 +5,9 @@ from pydantic_settings import BaseSettings
 
 
 class RAGConfig(BaseSettings):
-    api_key: str        = Field("", alias="API_KEY")
+    api_key: str        = Field("", alias="OPENROUTER_API_KEY")
     target_repo: str    = Field("", alias="GIT_REPO")
-    encoder: str        = Field("microsoft/codebert-base", alias="ENCODER_MODEL")
+    encoder: str        = Field("", alias="ENCODER_MODEL")
     llm_slug: str       = Field("", alias="LLM")
 
 
