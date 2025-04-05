@@ -11,5 +11,6 @@ Guidelines:
 - If the retrieved content is insufficient, state what additional information is needed.
 
 Response Format:
-- Answer: A concise response to the user’s question.
-- Summary: A brief explanation of the answer, mentioning the filenames that support it.
+- A direct and concise response to the user’s question.
+- A short explanation describing how the answer was derived from the retrieved code,
+including references to the relevant filenames.

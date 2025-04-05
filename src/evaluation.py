@@ -1,6 +1,9 @@
 import json
 import time
 
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+
 from scheme.config import PathConfig
 from scheme.ranker import Ranker
 
@@ -32,7 +35,7 @@ class Evaluator:
     # NOTE: Recall @ 10
     def _quality_metric(self, relevant: list[str], retrieved: list[str]) -> float:
         """
-        Calculates the recall metric.
+        Calculates the quality metric.
 
         Args:
             relevant (list[str]): List of relevant file paths.
@@ -44,12 +47,44 @@ class Evaluator:
 
         return sum(1 for e in relevant if e in retrieved) / len(relevant)
 
-    # TODO: Generate tradeoff plot, based on cached run logs
     def plot(self):
         """
         Generates a tradeoff plot based on cached run logs.
         """
-        pass
+
+        with open(self._config.logs_path) as f:
+            logs = [line.strip().split(", ") for line in f.readlines()]
+            slugs, quality, time = zip(*logs)
+
+        labels = set(slugs)
+        colors = plt.cm.tab20.colors
+        label_to_color = {label: colors[i] for i, label in enumerate(labels)}
+
+        plt.scatter(
+            [float(q) for q in quality],
+            [float(t) for t in time],
+            c=[label_to_color[l] for l in slugs],
+            alpha=0.5,
+        )
+
+        legend_elements = [
+            Patch(facecolor=label_to_color[label], label=label)
+            for label in labels
+        ]
+        plt.legend(
+            handles=legend_elements,
+            title="Approach",
+            bbox_to_anchor=(1.04, 0.5),
+            loc="center left",
+        )
+
+        plt.xlabel("Quality (Recall @ 10)")
+        plt.ylabel("Time (s)")
+        plt.title("Tradeoff between Quality and Time")
+        
+        plt.tight_layout()
+        plt.savefig(self._config.plot_path)
+
 
     async def test(self, ranker: Ranker, *, note: str = "RAG run", verbose: bool = False):
         """
@@ -83,9 +118,13 @@ class Evaluator:
         with open(self._config.logs_path, "a") as f:
             f.write(f"{note}, {quality_avg}, {time_avg}\n")
 
-        print(f"Measured metrics (query averaged)")
+        print(f"\nMeasured metrics (query averaged)")
         print(f"Retrieval quality: {quality_avg} | Time: {time_avg}\n")
 
 
 if __name__ == "__main__":
-    pass
+    from scheme.config import PathConfig
+
+    config = PathConfig()
+    eval = Evaluator(config)
+    eval.plot()

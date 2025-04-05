@@ -14,6 +14,7 @@ class RAGConfig(BaseSettings):
 _DATA_ROOT = Path("./data")
 class PathConfig(BaseSettings):
     logs_path: Path         = _DATA_ROOT / "runs.log"
+    plot_path: Path         = _DATA_ROOT / "eval/tradeoff.png"
     eval_set_path: Path     = _DATA_ROOT / "eval/test.json"
     lang_map_path: Path     = _DATA_ROOT / "resources/langchain_ext_map.json"
 

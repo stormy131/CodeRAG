@@ -30,6 +30,7 @@ async def main(args: Namespace):
     mode = args.__dict__.pop("mode")
     task_config = TaskConfig(**args.__dict__, summarize=(mode == "qa"))
     documents = load_docs(path_config, args.verbose)
+    # NOTE: uncomment the following line to chunk the documents with AST strategy
     # documents = await get_chunks(documents)
 
     rag = RAGExtractor(documents, path_config, task_config)
@@ -40,7 +41,7 @@ async def main(args: Namespace):
                     query = input("[ Q ]: ")
                     response, retrived = await rag.ainvoke(query)
 
-                    print(f"\nRetrieved items: {retrived}\n")
+                    print(f"\nRETRIEVED ITEMS: {retrived}\n")
                     print(f"[ A ]:\n{response}\n")
             except:
                 pass
