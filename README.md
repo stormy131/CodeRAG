@@ -25,7 +25,7 @@ The following environment variables are used in the CodeRAG system. These variab
 - **Description**: API key for accessing Google services, such as embeddings or other AI-related APIs.
 - During development, Google's `text-embedding-004` model proved to be the best for this task, so I decided to stick to it.
 
-#### 2. `API_KEY`
+#### 2. `OPENROUTER_API_KEY`
 - **Description**: API key for accessing OpenRouter, a platform that provides access to various LLMs.
 - Used to authenticate requests to OpenRouter for tasks such as query expansion and summarization. Ensure that this key is valid and corresponds to your OpenRouter account.
 
